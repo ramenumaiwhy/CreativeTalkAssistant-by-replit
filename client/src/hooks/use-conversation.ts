@@ -4,19 +4,13 @@ import { queryClient } from "@/lib/queryClient";
 import { Conversation, Message, Context } from "@/types";
 
 export function useConversations() {
-  return useQuery({
-    queryKey: ['/api/conversations'],
-    onSuccess: (data) => {
-      console.log('Fetched conversations:', data);
-    },
-    onError: (error) => {
-      console.error('Error fetching conversations:', error);
-    }
+  return useQuery<Conversation[]>({
+    queryKey: ['/api/conversations']
   });
 }
 
 export function useConversation(id?: string) {
-  return useQuery({
+  return useQuery<Conversation>({
     queryKey: ['/api/conversations', id],
     enabled: !!id,
   });
