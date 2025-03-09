@@ -37,7 +37,8 @@ export default function RightPanel({ conversationId }: RightPanelProps) {
     updatedAt: '',
     lastSaved: ''
   };
-  const currentConversation = conversation || defaultConversation;
+  // 会話データがない場合はデフォルト値を使用（型アサーションで型安全性を確保）
+  const currentConversation = (conversation || defaultConversation) as Conversation;
   const { mutate: updateContext } = useUpdateContext();
   const { mutate: exportConversation, isPending: isExporting } = useExportConversation();
   const { toast } = useToast();
@@ -93,7 +94,7 @@ export default function RightPanel({ conversationId }: RightPanelProps) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${conversation?.title || 'conversation'}.md`;
+        a.download = `${title || 'conversation'}.md`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -152,7 +153,12 @@ export default function RightPanel({ conversationId }: RightPanelProps) {
     );
   }
   
-  const { context, keyPoints = [] } = conversation;
+  // 正しい型安全性を確保して会話データから必要な情報を抽出
+  const { 
+    context, 
+    keyPoints = [], 
+    title = '会話' 
+  } = currentConversation;
   
   return (
     <>
@@ -209,7 +215,7 @@ export default function RightPanel({ conversationId }: RightPanelProps) {
             <h3 className="font-medium text-sm text-gray-700 mb-2">自動抽出されたキーポイント</h3>
             {keyPoints.length > 0 ? (
               <ul className="text-sm text-gray-800 space-y-2">
-                {keyPoints.map((point, index) => (
+                {keyPoints.map((point: string, index: number) => (
                   <li key={index} className="flex items-start">
                     <span className="text-primary-600 font-bold mr-2">•</span>
                     {point}
@@ -225,7 +231,7 @@ export default function RightPanel({ conversationId }: RightPanelProps) {
           <div className="border border-gray-200 rounded-md p-3 mb-4">
             <h3 className="font-medium text-sm text-gray-700 mb-2">マインドマップ</h3>
             <div className="bg-white p-2 rounded-md border border-gray-100 h-64 overflow-auto">
-              <MindMap keyPoints={keyPoints} title={conversation.title} />
+              <MindMap keyPoints={keyPoints} title={title} />
             </div>
             <button className="mt-2 w-full py-1.5 px-3 bg-gray-100 rounded-md text-xs text-gray-700 font-medium hover:bg-gray-200 transition">
               拡大表示
