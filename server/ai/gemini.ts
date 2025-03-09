@@ -123,14 +123,40 @@ export async function processMessageWithAI(conversation: Conversation, systemPro
 
     // チャットセッションを開始
     // （AIとの会話を始めるための準備をします）
-    const chat = model.startChat({
-      history,
-      systemInstruction: prompt,
-    });
-
-    // メッセージを送信し、応答を取得
-    // （空のメッセージを送信することで、AIに会話を続けるよう促します）
-    const result = await chat.sendMessage("");
+    // 履歴があり、最大メッセージ数に達していない場合のみチャットモードを使用
+    // メッセージが多すぎるとエラーが発生するため、制限を設ける
+    const maxMessagesForChat = 10;
+    let result;
+    
+    try {
+      if (history.length > 0 && history.length <= maxMessagesForChat) {
+        // チャット履歴でセッションを開始
+        const chat = model.startChat({
+          history,
+          systemInstruction: prompt,
+        });
+        
+        // 空のメッセージを送信して応答を取得
+        result = await chat.sendMessage("");
+      } else {
+        // 履歴が長すぎる場合や履歴がない場合は単一のリクエストとして送信
+        // システムプロンプトと直近のメッセージだけを使用
+        const lastUserMsg = conversation.messages.find(msg => msg.role === 'user');
+        const userContent = lastUserMsg?.content || "こんにちは";
+        
+        const fullPrompt = `${prompt}\n\n以下は最新のユーザーメッセージです:\n${userContent}`;
+        result = await model.generateContent(fullPrompt);
+      }
+    } catch (promptError) {
+      console.error("Chat session error, falling back to single prompt:", promptError);
+      
+      // エラー発生時は単一プロンプトモードにフォールバック
+      const lastUserMsg = conversation.messages.find(msg => msg.role === 'user');
+      const userContent = lastUserMsg?.content || "こんにちは";
+      
+      const fullPrompt = `${prompt}\n\n以下は最新のユーザーメッセージです:\n${userContent}`;
+      result = await model.generateContent(fullPrompt);
+    }
     const response = result.response;
     const responseText = response.text();
 
