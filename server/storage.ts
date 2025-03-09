@@ -34,6 +34,9 @@ export class MemStorage implements IStorage {
     this.conversations = new Map();
     this.lineUsers = new Map();
     this.currentUserId = 1;
+    
+    // デバッグ用ログ
+    console.log("MemStorage initialized - Add debug startup message here");
   }
   
   async getUser(id: number): Promise<any | undefined> {

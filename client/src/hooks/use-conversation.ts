@@ -5,7 +5,9 @@ import { Conversation, Message, Context } from "@/types";
 
 export function useConversations() {
   return useQuery<Conversation[]>({
-    queryKey: ['/api/conversations']
+    queryKey: ['/api/conversations'],
+    refetchInterval: 3000, // 3秒ごとに自動でデータを再取得
+    refetchOnMount: true,  // コンポーネントがマウントされた時に再取得
   });
 }
 
@@ -13,6 +15,8 @@ export function useConversation(id?: string) {
   return useQuery<Conversation>({
     queryKey: ['/api/conversations', id],
     enabled: !!id,
+    refetchInterval: 3000, // 3秒ごとに自動でデータを再取得
+    refetchOnMount: true,  // コンポーネントがマウントされた時に再取得
   });
 }
 
