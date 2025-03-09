@@ -9,7 +9,12 @@ import { Conversation } from "@/types";
  * 「鍵」のようなもので、これがないとサービスを使うことができません。
  */
 // APIキーを環境変数から取得
-const apiKey = process.env.GOOGLE_API_KEY || '';
+let apiKey = process.env.GOOGLE_API_KEY || '';
+// APIキーが正しい形式でない場合の補正処理
+if (apiKey.includes('GOOGLE_GENERATIVE_AI_API_KEY=')) {
+  apiKey = apiKey.split('=')[1];
+}
+console.log("API Key format:", apiKey.substring(0, 5) + "****");
 let genAI: GoogleGenerativeAI | null = null;
 
 try {
@@ -58,7 +63,7 @@ export async function processMessageWithAI(conversation: Conversation, systemPro
   try {
     // Geminiモデルを取得
     // （「モデル」とは、AIの種類や能力を決める設定のことです）
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     // 会話履歴をAIが理解できる形式に変換
     // （会話の各メッセージを「誰が話したか」と「何を言ったか」の形式に整理します）
@@ -77,13 +82,25 @@ export async function processMessageWithAI(conversation: Conversation, systemPro
 
     // コンテキスト情報（時間、場所、気分、アルコールレベル）を文字列に整形
     // （「コンテキスト」とは、会話の背景情報のことです）
-    const contextInfo = `
-      現在の会話コンテキスト:
-      - 時間: ${new Date(conversation.context.time).toLocaleString('ja-JP')}
-      - 場所: ${conversation.context.place}
-      - 気分: ${conversation.context.mood}
-      - アルコールレベル: ${conversation.context.alcoholLevel}
-    `;
+    let contextInfo = '';
+    
+    if (conversation.context) {
+      contextInfo = `
+        現在の会話コンテキスト:
+        - 時間: ${new Date(conversation.context.time || new Date()).toLocaleString('ja-JP')}
+        - 場所: ${conversation.context.place || '未設定'}
+        - 気分: ${conversation.context.mood || '未設定'}
+        - アルコールレベル: ${conversation.context.alcoholLevel || 'なし'}
+      `;
+    } else {
+      contextInfo = `
+        現在の会話コンテキスト:
+        - 時間: ${new Date().toLocaleString('ja-JP')}
+        - 場所: 未設定
+        - 気分: 未設定
+        - アルコールレベル: なし
+      `;
+    }
 
     // システムプロンプトとコンテキスト情報を組み合わせて、AIへの指示を作成
     // （「プロンプト」とは、AIに与える指示や質問のことです）
