@@ -176,7 +176,23 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
       </div>
 
       {/* チャットメッセージ一覧 */}
-      <MessageList messages={conversation.messages} isTyping={isPending} />
+      <MessageList 
+        messages={conversation?.messages || []} 
+        isTyping={isPending} 
+      />
+      
+      {/* デバッグ用：会話データを確認（常に表示） */}
+      <div className="bg-yellow-50 p-2 text-xs border-t border-yellow-200">
+        <details>
+          <summary className="cursor-pointer">デバッグ情報</summary>
+          <p>メッセージ数: {conversation?.messages?.length || 0}</p>
+          <p>会話ID: {conversationId}</p>
+          <p>会話タイトル: {conversation?.title || '不明'}</p>
+          <pre className="mt-2 bg-white p-1 rounded text-[9px] max-h-24 overflow-auto">
+            {JSON.stringify(conversation?.messages || [], null, 2)}
+          </pre>
+        </details>
+      </div>
 
       {/* メッセージ入力エリア */}
       <MessageInput onSendMessage={handleSendMessage} disabled={isPending} />
