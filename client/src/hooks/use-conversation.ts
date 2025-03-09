@@ -47,7 +47,14 @@ export function useSendMessage() {
 export function useUpdateContext() {
   const mutation = useMutation({
     mutationFn: async ({ conversationId, context }: { conversationId: string, context: Context }) => {
-      const res = await apiRequest('PATCH', `/api/conversations/${conversationId}/context`, context);
+      // contextオブジェクトが適切な形式で送信されるようにする
+      // timeフィールドがない場合は現在時刻を追加
+      const updatedContext = {
+        ...context,
+        time: context.time || new Date().toISOString()
+      };
+      
+      const res = await apiRequest('PATCH', `/api/conversations/${conversationId}/context`, updatedContext);
       return await res.json();
     },
     onSuccess: (_data, variables) => {

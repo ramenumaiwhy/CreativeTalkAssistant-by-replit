@@ -146,11 +146,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateConversation(conversation);
       
       res.json(conversation);
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "無効なリクエスト", errors: error.errors });
       }
-      res.status(500).json({ message: "メッセージの送信に失敗しました" });
+      
+      // Gemini APIのエラーをより詳細に処理
+      if (error.name === 'GoogleGenerativeAIFetchError') {
+        console.error('AI Error:', error);
+        
+        // APIキーが無効な場合
+        if (error.status === 400 && error.message.includes('API key not valid')) {
+          return res.status(503).json({
+            message: "AIサービスが一時的に利用できません",
+            detail: "API認証に問題が発生しました。しばらく経ってから再度お試しください。"
+          });
+        }
+        
+        // レート制限に達した場合
+        if (error.status === 429) {
+          return res.status(503).json({
+            message: "AIサービスが一時的に混雑しています",
+            detail: "しばらく時間をおいてから再度お試しください。"
+          });
+        }
+        
+        // その他のAIサービスエラー
+        return res.status(503).json({
+          message: "AIサービスとの通信に失敗しました",
+          detail: "しばらく経ってから再度お試しください。"
+        });
+      }
+      
+      // その他の予期しないエラー
+      console.error('Unexpected error:', error);
+      res.status(500).json({ 
+        message: "メッセージの送信に失敗しました",
+        detail: "予期しないエラーが発生しました。しばらく経ってから再度お試しください。"
+      });
     }
   });
   

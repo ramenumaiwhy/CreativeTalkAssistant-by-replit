@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useConversation, useUpdateContext, useExportConversation } from "@/hooks/use-conversation";
-import { Context } from "@/types";
+import { Context, Conversation } from "@/types";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Download, Share2, Clock, MapPin, Smile, Wine } from "lucide-react";
@@ -18,6 +18,17 @@ interface RightPanelProps {
 
 export default function RightPanel({ conversationId }: RightPanelProps) {
   const { data: conversation } = useConversation(conversationId);
+  const defaultConversation: Conversation = {
+    id: '',
+    title: '',
+    context: null,
+    keyPoints: [],
+    messages: [],
+    createdAt: '',
+    updatedAt: '',
+    lastSaved: ''
+  };
+  const currentConversation = conversation || defaultConversation;
   const { mutate: updateContext } = useUpdateContext();
   const { mutate: exportConversation, isPending: isExporting } = useExportConversation();
   const { toast } = useToast();
@@ -26,8 +37,12 @@ export default function RightPanel({ conversationId }: RightPanelProps) {
   const [editedContext, setEditedContext] = useState<Context | null>(null);
   
   const handleOpenContextEditor = () => {
-    if (conversation?.context) {
-      setEditedContext({ ...conversation.context });
+    const currentContext = (conversation as any).context;
+    if (currentContext) {
+      setEditedContext({ 
+        ...currentContext,
+        time: currentContext.time || new Date().toISOString()
+      });
       setIsEditingContext(true);
     }
   };
