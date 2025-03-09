@@ -55,17 +55,27 @@ export class MemStorage implements IStorage {
   
   // Conversation methods
   async getConversations(): Promise<Conversation[]> {
-    return Array.from(this.conversations.values()).sort(
+    const conversations = Array.from(this.conversations.values()).sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
+    console.log(`Debug - getConversations: Found ${conversations.length} conversations`);
+    console.log(`Debug - Conversations Map size: ${this.conversations.size}`);
+    if (this.conversations.size > 0) {
+      console.log(`Debug - First conversation ID: ${conversations[0]?.id}`);
+    }
+    return conversations;
   }
   
   async getConversation(id: string): Promise<Conversation | undefined> {
-    return this.conversations.get(id);
+    const conversation = this.conversations.get(id);
+    console.log(`Debug - getConversation: Requested ID ${id}, Found: ${conversation ? 'Yes' : 'No'}`);
+    return conversation;
   }
   
   async createConversation(conversation: Conversation): Promise<Conversation> {
+    console.log(`Debug - createConversation: Creating conversation with ID ${conversation.id}`);
     this.conversations.set(conversation.id, conversation);
+    console.log(`Debug - After creation, Map size: ${this.conversations.size}`);
     return conversation;
   }
   

@@ -6,6 +6,12 @@ import { Conversation, Message, Context } from "@/types";
 export function useConversations() {
   return useQuery({
     queryKey: ['/api/conversations'],
+    onSuccess: (data) => {
+      console.log('Fetched conversations:', data);
+    },
+    onError: (error) => {
+      console.error('Error fetching conversations:', error);
+    }
   });
 }
 
@@ -20,11 +26,17 @@ export function useCreateConversation() {
   const mutation = useMutation({
     mutationFn: async (context: Context) => {
       const res = await apiRequest('POST', '/api/conversations', { context });
-      return await res.json();
+      const data = await res.json();
+      console.log('Created conversation:', data);
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Successfully created conversation, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
     },
+    onError: (error) => {
+      console.error('Error creating conversation:', error);
+    }
   });
   
   return mutation;
