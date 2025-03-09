@@ -14,6 +14,10 @@ let apiKey = process.env.GOOGLE_API_KEY || '';
 if (apiKey.includes('GOOGLE_GENERATIVE_AI_API_KEY=')) {
   apiKey = apiKey.split('=')[1];
 }
+// APIキーの先頭が「AIza」で始まるかチェック（一般的なGoogle APIキーの形式）
+if (!apiKey.startsWith('AIza')) {
+  console.error("API Key may be invalid - does not start with 'AIza'");
+}
 console.log("API Key format:", apiKey.substring(0, 5) + "****");
 let genAI: GoogleGenerativeAI | null = null;
 
@@ -24,6 +28,13 @@ try {
   // 初期化に失敗した場合はエラーをログに出力
   console.error("Error initializing Google Generative AI:", error);
 }
+
+/**
+ * テスト用のモックレスポンスを生成するフラグ
+ * 本番環境では必ずfalseに設定
+ * MCPモードはModel, Content, Promptの頭文字でGemini APIに依存せずテストできるモード
+ */
+const USE_MCP_MODE = process.env.USE_MCP_MODE === 'true' || false;
 
 /**
  * AIからの応答の形式を定義するインターフェース
@@ -65,7 +76,13 @@ export async function processMessageWithAI(conversation: Conversation, systemPro
     // （「モデル」とは、AIの種類や能力を決める設定のことです）
     // 注意: モデル名はAPIバージョンによって異なる場合があります
     // APIの最新バージョンに対応するモデル名を使用
-    // 利用可能なモデル: "gemini-pro", "gemini-1.5-pro", "gemini-1.0-pro"など
+    // Google APIのドキュメントによれば、一般的に利用可能なモデル名は以下：
+    // - gemini-pro
+    // - gemini-pro-vision
+    // - gemini-ultra
+    // - gemini-1.5-pro-latest
+    // - gemini-1.5-flash-latest
+    // @google/generative-aiライブラリのバージョンによって正しいモデル名が異なる場合があります
     const model = genAI.getGenerativeModel({
       model: "gemini-pro"
     });
