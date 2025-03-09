@@ -57,16 +57,22 @@ export default function Home() {
 
     // 型安全性を確保するため、conversations が配列であることを確認
     const conversationArray = Array.isArray(conversations) ? conversations : [];
-
+    
+    console.log("Home useEffect - Conversations:", conversationArray);
+    console.log("Home useEffect - Conversations length:", conversationArray.length);
+    console.log("Home useEffect - Looking for conversation ID:", conversationId);
+    
     if (conversationId && conversationArray.length > 0) {
       // 指定されたIDの会話を探す
       const conversation = conversationArray.find((c: Conversation) => c.id === conversationId);
+      console.log("Home useEffect - Found conversation by ID:", conversation ? "Yes" : "No");
       if (conversation) {
         // 見つかった会話を選択状態にする
         setSelectedConversation(conversation);
       }
     } else if (conversationArray.length > 0 && !selectedConversation) {
       // 会話IDが指定されていない場合は、最新の会話を選択する
+      console.log("Home useEffect - Selecting first conversation:", conversationArray[0]);
       setSelectedConversation(conversationArray[0]);
     }
   }, [conversations, location]); // 会話一覧またはURLが変わったときに実行

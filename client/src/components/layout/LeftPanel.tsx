@@ -18,6 +18,10 @@ export default function LeftPanel({ selectedConversationId, onSelectConversation
   const { toast } = useToast();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   
+  // デバッグ用：会話データを確認
+  console.log("LeftPanel - conversations data:", conversations);
+  console.log("LeftPanel - isLoading:", isLoading);
+  
   const handleNewConversation = () => {
     if (isCreating) return;
     
