@@ -69,11 +69,16 @@ export default function Home() {
       if (conversation) {
         // 見つかった会話を選択状態にする
         setSelectedConversation(conversation);
+        console.log("Home useEffect - Selected conversation:", conversation.id);
+        // URLをクエリパラメータ付きで設定
+        setLocation(`/?conversation=${conversation.id}`);
       }
     } else if (conversationArray.length > 0 && !selectedConversation) {
       // 会話IDが指定されていない場合は、最新の会話を選択する
       console.log("Home useEffect - Selecting first conversation:", conversationArray[0]);
       setSelectedConversation(conversationArray[0]);
+      // URLをクエリパラメータ付きで設定
+      setLocation(`/?conversation=${conversationArray[0].id}`);
     }
   }, [conversations, location]); // 会話一覧またはURLが変わったときに実行
 

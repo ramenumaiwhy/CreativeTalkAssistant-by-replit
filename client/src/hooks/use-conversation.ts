@@ -12,11 +12,33 @@ export function useConversations() {
 }
 
 export function useConversation(id?: string) {
+  const fetchConversation = async ({ queryKey }: any) => {
+    const [_, conversationId] = queryKey;
+    console.log("Individual conversation fetch - Fetching ID:", conversationId);
+    
+    if (!conversationId) {
+      console.log("No conversation ID provided");
+      return null;
+    }
+    
+    const response = await fetch(`/api/conversations/${conversationId}`);
+    if (!response.ok) {
+      throw new Error('会話の取得に失敗しました');
+    }
+    
+    const data = await response.json();
+    console.log("個別会話データ:", data);
+    console.log("メッセージ数:", data.messages?.length || 0);
+    return data;
+  };
+
   return useQuery<Conversation>({
     queryKey: ['/api/conversations', id],
+    queryFn: fetchConversation,
     enabled: !!id,
     refetchInterval: 3000, // 3秒ごとに自動でデータを再取得
     refetchOnMount: true,  // コンポーネントがマウントされた時に再取得
+    staleTime: 0,  // 常に最新データを取得する
   });
 }
 
