@@ -83,8 +83,11 @@ export async function processMessageWithAI(conversation: Conversation, systemPro
     // - gemini-1.5-pro-latest
     // - gemini-1.5-flash-latest
     // @google/generative-aiライブラリのバージョンによって正しいモデル名が異なる場合があります
+    // APIバージョンによって利用可能なモデル名が変わります
+    // 一般的なモデル名: gemini-pro, gemini-1.5-pro, gemini-1.0-pro など
+    // エラーが出る場合は、Google AI Studioで最新のモデル名を確認してください
     const model = genAI.getGenerativeModel({
-      model: "gemini-pro"
+      model: "gemini-1.5-pro-latest" // 最新のモデル名を使用
     });
 
     // 会話履歴をAIが理解できる形式に変換

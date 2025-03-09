@@ -55,16 +55,19 @@ export default function Home() {
     const params = new URLSearchParams(window.location.search);
     const conversationId = params.get('conversation');
 
-    if (conversationId && conversations) {
+    // 型安全性を確保するため、conversations が配列であることを確認
+    const conversationArray = Array.isArray(conversations) ? conversations : [];
+
+    if (conversationId && conversationArray.length > 0) {
       // 指定されたIDの会話を探す
-      const conversation = conversations.find(c => c.id === conversationId);
+      const conversation = conversationArray.find((c: Conversation) => c.id === conversationId);
       if (conversation) {
         // 見つかった会話を選択状態にする
         setSelectedConversation(conversation);
       }
-    } else if (conversations && conversations.length > 0 && !selectedConversation) {
+    } else if (conversationArray.length > 0 && !selectedConversation) {
       // 会話IDが指定されていない場合は、最新の会話を選択する
-      setSelectedConversation(conversations[0]);
+      setSelectedConversation(conversationArray[0]);
     }
   }, [conversations, location]); // 会話一覧またはURLが変わったときに実行
 
@@ -134,7 +137,7 @@ export default function Home() {
               <h2 className="text-xl font-medium text-gray-700 mb-2">ConstructiveTalk へようこそ</h2>
               <p className="text-gray-500 max-w-md mx-auto">
                 評価懸念のない対話環境での創造性の解放と、アイデアの持続的な発展をサポートします。
-                {!isLoading && conversations?.length === 0 && (
+                {!isLoading && (!Array.isArray(conversations) || conversations.length === 0) && (
                   // 会話がまだない場合は、新しい会話を始めるよう促すメッセージを表示
                   <span className="block mt-4">
                     左上の「+」ボタンをクリックして、新しい会話を始めましょう。

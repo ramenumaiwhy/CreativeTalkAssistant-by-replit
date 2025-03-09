@@ -18,6 +18,8 @@ interface RightPanelProps {
 
 export default function RightPanel({ conversationId }: RightPanelProps) {
   const { data: conversation } = useConversation(conversationId);
+  // 明示的に型アサーションを適用してタイプチェックを通過させる
+  const typedConversationData = conversation as Conversation | undefined;
   // デフォルトコンテキスト - ユーザーがまだコンテキストを設定していない場合に使用
   const defaultContext: Context = {
     time: new Date().toISOString(),
@@ -47,8 +49,10 @@ export default function RightPanel({ conversationId }: RightPanelProps) {
   const [editedContext, setEditedContext] = useState<Context | null>(null);
   
   const handleOpenContextEditor = () => {
-    // 会話がない場合はデフォルトのコンテキストを使用
-    const currentContext = conversation?.context || defaultContext;
+    // 会話がない場合または適切な型でない場合はデフォルトのコンテキストを使用
+    // 型アサーションを使用して、conversionがConversation型であることを明示
+    const typedConversation = conversation as Conversation | undefined;
+    const currentContext = typedConversation?.context || defaultContext;
     
     // 編集用のコンテキストをコピーして設定（必ず有効なコンテキストを使用）
     setEditedContext({ 
@@ -94,7 +98,9 @@ export default function RightPanel({ conversationId }: RightPanelProps) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${title || 'conversation'}.md`;
+        // 現在の会話のタイトルがあれば使用、なければデフォルト値を使用
+        const downloadTitle = currentConversation?.title || 'conversation';
+        a.download = `${downloadTitle}.md`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
