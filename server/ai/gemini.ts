@@ -92,18 +92,25 @@ export async function processMessageWithAI(conversation: Conversation, systemPro
 
     // 会話履歴をAIが理解できる形式に変換
     // （会話の各メッセージを「誰が話したか」と「何を言ったか」の形式に整理します）
+    console.log(`Converting ${conversation.messages.length} messages to AI format`);
+    
     const history = conversation.messages.map(msg => {
       if (msg.role === 'user') {
         // ユーザーのメッセージ
+        console.log(`User message: ${msg.content.substring(0, 30)}...`);
         return { role: 'user', parts: [{ text: msg.content }] };
       } else if (msg.role === 'assistant') {
         // AIのメッセージ
+        console.log(`Assistant message: ${msg.content.substring(0, 30)}...`);
         return { role: 'model', parts: [{ text: msg.content }] };
       } else {
         // システムメッセージ（AIへの指示など）
+        console.log(`System message: ${msg.content.substring(0, 30)}...`);
         return { role: 'user', parts: [{ text: `[SYSTEM]: ${msg.content}` }] };
       }
     });
+    
+    console.log(`Converted ${history.length} messages for AI processing`);
 
     // コンテキスト情報（時間、場所、気分、アルコールレベル）を文字列に整形
     // （「コンテキスト」とは、会話の背景情報のことです）
@@ -156,31 +163,62 @@ export async function processMessageWithAI(conversation: Conversation, systemPro
     try {
       if (history.length > 0 && history.length <= maxMessagesForChat) {
         // チャット履歴でセッションを開始
+        console.log(`Using chat mode with ${history.length} messages (max: ${maxMessagesForChat})`);
         const chat = model.startChat({
           history,
           systemInstruction: prompt,
         });
         
-        // 空のメッセージを送信して応答を取得
+        // 最新のユーザーメッセージを見つける
+        const lastUserMsgs = conversation.messages
+          .filter(msg => msg.role === 'user')
+          .slice(-2); // 最新の2つ
+        
+        console.log(`Last user messages (${lastUserMsgs.length}):`);
+        lastUserMsgs.forEach((msg, i) => {
+          console.log(`  ${i+1}: ${msg.content.substring(0, 40)}...`);
+        });
+        
+        // 最後のユーザーメッセージを使用してAIに送信
+        console.log(`Sending empty message to continue conversation`);
         result = await chat.sendMessage("");
+        console.log(`Received response from AI`);
       } else {
         // 履歴が長すぎる場合や履歴がない場合は単一のリクエストとして送信
-        // システムプロンプトと直近のメッセージだけを使用
-        const lastUserMsg = conversation.messages.find(msg => msg.role === 'user');
-        const userContent = lastUserMsg?.content || "こんにちは";
+        console.log(`Using single prompt mode: message count (${history.length}) exceeds limit or is empty`);
         
-        const fullPrompt = `${prompt}\n\n以下は最新のユーザーメッセージです:\n${userContent}`;
+        // システムプロンプトと直近のメッセージだけを使用
+        const userMessages = conversation.messages.filter(msg => msg.role === 'user');
+        console.log(`Found ${userMessages.length} user messages`);
+        
+        const lastUserMsg = userMessages.length > 0 ? 
+          userMessages[userMessages.length - 1] : 
+          { content: "こんにちは" };
+        
+        console.log(`Using last user message: ${lastUserMsg.content.substring(0, 40)}...`);
+        
+        const fullPrompt = `${prompt}\n\n以下は最新のユーザーメッセージです:\n${lastUserMsg.content}`;
+        console.log(`Sending single prompt request`);
         result = await model.generateContent(fullPrompt);
+        console.log(`Received response from AI`);
       }
     } catch (promptError) {
       console.error("Chat session error, falling back to single prompt:", promptError);
       
       // エラー発生時は単一プロンプトモードにフォールバック
-      const lastUserMsg = conversation.messages.find(msg => msg.role === 'user');
-      const userContent = lastUserMsg?.content || "こんにちは";
+      const userMessages = conversation.messages.filter(msg => msg.role === 'user');
       
-      const fullPrompt = `${prompt}\n\n以下は最新のユーザーメッセージです:\n${userContent}`;
+      // 最後のユーザーメッセージを取得
+      const lastUserMsg = userMessages.length > 0 ? 
+        userMessages[userMessages.length - 1] : 
+        { content: "こんにちは" };
+      
+      console.log(`[FALLBACK] Using last user message: ${lastUserMsg.content.substring(0, 40)}...`);
+      
+      const fullPrompt = `${prompt}\n\n以下は最新のユーザーメッセージです:\n${lastUserMsg.content}`;
+      console.log(`[FALLBACK] Sending single prompt request`);
       result = await model.generateContent(fullPrompt);
+      console.log(`[FALLBACK] Received response from AI`);
     }
     const response = result.response;
     const responseText = response.text();
