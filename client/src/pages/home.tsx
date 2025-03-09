@@ -6,7 +6,7 @@ import ChatInterface from "@/components/chat/ChatInterface";
 import RightPanel from "@/components/layout/RightPanel";
 import { useConversations } from "@/hooks/use-conversation";
 import { Conversation } from "@/types";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 /**
  * ホームページコンポーネント
@@ -153,6 +153,11 @@ export default function Home() {
       {selectedConversation && (
         <Dialog open={isContextOpen} onOpenChange={setIsContextOpen}>
           <DialogContent className="sm:max-w-md">
+            <div className="sr-only">
+              {/* スクリーンリーダー向けのタイトル（アクセシビリティ対応） */}
+              <DialogTitle>会話コンテキスト情報</DialogTitle>
+              <DialogDescription>この会話の時間、場所、気分などの情報を表示しています</DialogDescription>
+            </div>
             <RightPanel conversationId={selectedConversation.id} />
           </DialogContent>
         </Dialog>
