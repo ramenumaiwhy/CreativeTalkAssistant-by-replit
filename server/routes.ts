@@ -84,11 +84,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { content } = messageSchema.parse(req.body);
       const conversationId = req.params.id;
       
+      console.log(`Received message for conversation ${conversationId}: ${content.substring(0, 20)}...`);
+      
       // Get the conversation
       const conversation = await storage.getConversation(conversationId);
       if (!conversation) {
+        console.error(`Conversation not found: ${conversationId}`);
         return res.status(404).json({ message: "会話が見つかりませんでした" });
       }
+      
+      console.log(`Found conversation: ${conversation.id}, messages count: ${conversation.messages.length}`);
       
       // Create and add the user message
       const userMessage = {
@@ -99,17 +104,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date().toISOString(),
       };
       
+      // 会話に新しいメッセージを追加
       conversation.messages.push(userMessage);
       conversation.updatedAt = new Date().toISOString();
       
-      // Update the conversation and get AI response
+      // 会話を保存
+      console.log(`Saving user message to conversation ${conversationId}`);
       await storage.updateConversation(conversation);
       
-      // Process with AI and get response
+      // AIによる処理を実行
+      console.log(`Processing conversation with AI: ${conversationId}`);
       const systemPrompt = await createSystemPrompt();
       const aiResponse = await processMessageWithAI(conversation, systemPrompt);
       
-      // Create the assistant message
+      // AIの応答メッセージを作成
       const assistantMessage = {
         id: uuidv4(),
         conversationId,
@@ -118,15 +126,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date().toISOString(),
       };
       
-      // Update conversation with AI response and key points
+      // AIの応答を会話に追加
+      console.log(`Adding AI response to conversation ${conversationId}`);
       conversation.messages.push(assistantMessage);
       
-      // Update title if it's a new conversation
+      // タイトルが新しい会話の場合は、AIが提案したタイトルに更新
       if (conversation.title === "新しい会話" && aiResponse.title) {
+        console.log(`Updating conversation title to: ${aiResponse.title}`);
         conversation.title = aiResponse.title;
       }
       
-      // Update key points and summary
+      // キーポイントとサマリーを更新
       if (aiResponse.keyPoints && aiResponse.keyPoints.length > 0) {
         conversation.keyPoints = aiResponse.keyPoints;
       }
@@ -135,16 +145,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conversation.summary = aiResponse.summary;
       }
       
-      // Update tags if available
+      // タグを更新
       if (aiResponse.tags && aiResponse.tags.length > 0) {
         conversation.tags = aiResponse.tags;
       }
       
+      // 更新日時を設定
       conversation.updatedAt = new Date().toISOString();
       conversation.lastSaved = new Date().toISOString();
       
+      // 会話を保存
+      console.log(`Saving updated conversation: ${conversationId}, total messages: ${conversation.messages.length}`);
       await storage.updateConversation(conversation);
       
+      // 更新された会話を返す
       res.json(conversation);
     } catch (error: any) {
       if (error instanceof z.ZodError) {

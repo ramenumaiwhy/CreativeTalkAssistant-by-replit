@@ -65,12 +65,22 @@ export function useCreateConversation() {
 export function useSendMessage() {
   const mutation = useMutation({
     mutationFn: async ({ conversationId, content }: { conversationId: string, content: string }) => {
+      console.log(`Sending message to conversation ${conversationId}: ${content.substring(0, 20)}...`);
+      
       const res = await apiRequest('POST', `/api/conversations/${conversationId}/messages`, { content });
-      return await res.json();
+      const data = await res.json();
+      console.log('Message sent successfully, response:', data?.id || 'No data');
+      return data;
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
+      console.log(`Invalidating queries after sending message to ${variables.conversationId}`);
+      // 会話一覧とこの特定の会話を再取得するよう指示
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
       queryClient.invalidateQueries({ queryKey: ['/api/conversations', variables.conversationId] });
     },
+    onError: (error) => {
+      console.error('Error sending message:', error);
+    }
   });
   
   return mutation;
