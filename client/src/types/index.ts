@@ -17,7 +17,7 @@ export interface Conversation {
   id: string;
   title: string;
   messages: Message[];
-  context: Context;
+  context?: Context | null; // コンテキストはオプションまたはnullの場合がある
   keyPoints: string[];
   tags?: string[];
   summary?: string;

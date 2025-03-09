@@ -18,10 +18,19 @@ interface RightPanelProps {
 
 export default function RightPanel({ conversationId }: RightPanelProps) {
   const { data: conversation } = useConversation(conversationId);
+  // デフォルトコンテキスト - ユーザーがまだコンテキストを設定していない場合に使用
+  const defaultContext: Context = {
+    time: new Date().toISOString(),
+    place: "未設定",
+    mood: "普通",
+    alcoholLevel: "なし"
+  };
+  
+  // デフォルト会話 - データが取得できない場合のフォールバック
   const defaultConversation: Conversation = {
     id: '',
     title: '',
-    context: null,
+    context: defaultContext, // 必ずContextを持つように設定
     keyPoints: [],
     messages: [],
     createdAt: '',
@@ -37,14 +46,19 @@ export default function RightPanel({ conversationId }: RightPanelProps) {
   const [editedContext, setEditedContext] = useState<Context | null>(null);
   
   const handleOpenContextEditor = () => {
-    const currentContext = (conversation as any).context;
-    if (currentContext) {
-      setEditedContext({ 
-        ...currentContext,
-        time: currentContext.time || new Date().toISOString()
-      });
-      setIsEditingContext(true);
-    }
+    // 会話がない場合はデフォルトのコンテキストを使用
+    const currentContext = conversation?.context || defaultContext;
+    
+    // 編集用のコンテキストをコピーして設定（必ず有効なコンテキストを使用）
+    setEditedContext({ 
+      ...currentContext,
+      time: currentContext.time || new Date().toISOString(),
+      place: currentContext.place || "未設定",
+      mood: currentContext.mood || "普通",
+      alcoholLevel: currentContext.alcoholLevel || "なし"
+    });
+    
+    setIsEditingContext(true);
   };
   
   const handleSaveContext = () => {

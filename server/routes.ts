@@ -225,10 +225,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add context information
       markdown += `## コンテキスト情報\n\n`;
-      markdown += `- 時間: ${new Date(conversation.context.time).toLocaleString('ja-JP')}\n`;
-      markdown += `- 場所: ${conversation.context.place}\n`;
-      markdown += `- 気分: ${conversation.context.mood}\n`;
-      markdown += `- アルコールレベル: ${conversation.context.alcoholLevel}\n\n`;
+      if (conversation.context) {
+        markdown += `- 時間: ${new Date(conversation.context.time || new Date()).toLocaleString('ja-JP')}\n`;
+        markdown += `- 場所: ${conversation.context.place || '未設定'}\n`;
+        markdown += `- 気分: ${conversation.context.mood || '未設定'}\n`;
+        markdown += `- アルコールレベル: ${conversation.context.alcoholLevel || 'なし'}\n\n`;
+      } else {
+        markdown += `- 時間: ${new Date().toLocaleString('ja-JP')}\n`;
+        markdown += `- 場所: 未設定\n`;
+        markdown += `- 気分: 未設定\n`;
+        markdown += `- アルコールレベル: なし\n\n`;
+      }
       
       // Add messages
       markdown += `## 会話内容\n\n`;

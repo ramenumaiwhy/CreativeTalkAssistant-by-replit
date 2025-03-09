@@ -63,7 +63,12 @@ export async function processMessageWithAI(conversation: Conversation, systemPro
   try {
     // Geminiモデルを取得
     // （「モデル」とは、AIの種類や能力を決める設定のことです）
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // 注意: モデル名はAPIバージョンによって異なる場合があります
+    // APIの最新バージョンに対応するモデル名を使用
+    // 利用可能なモデル: "gemini-pro", "gemini-1.5-pro", "gemini-1.0-pro"など
+    const model = genAI.getGenerativeModel({
+      model: "gemini-pro"
+    });
 
     // 会話履歴をAIが理解できる形式に変換
     // （会話の各メッセージを「誰が話したか」と「何を言ったか」の形式に整理します）
