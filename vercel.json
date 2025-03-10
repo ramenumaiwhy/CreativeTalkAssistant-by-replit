@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "installCommand": "npm install && npm install --save-dev tsx esbuild typescript @vercel/node",
-  "buildCommand": "npm run build && mkdir -p dist/client && mkdir -p dist/server && ([ -d \"dist/assets\" ] && cp -r dist/assets dist/client/ || true) && ([ -f \"dist/index.html\" ] && cp dist/index.html dist/client/ || true)",
+  "installCommand": "npm install",
+  "buildCommand": "mkdir -p dist/client dist/server && npm run build && ([ -d \"dist/assets\" ] && mv dist/assets dist/client/ || echo \"No assets directory\") && ([ -f \"dist/index.html\" ] && mv dist/index.html dist/client/ || echo \"No index.html file\")",
   "outputDirectory": "dist",
   "framework": "vite",
   "public": true,

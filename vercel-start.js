@@ -1,6 +1,7 @@
-// vercel-start.js - Vercel環境用の拡張サーバースクリプト
+// vercel-start.js - Vercel環境用の拡張サーバー起動スクリプト
 const path = require('path');
 const fs = require('fs');
+const express = require('express');
 
 // 環境変数の設定
 process.env.VERCEL = process.env.VERCEL || "1";
@@ -84,7 +85,6 @@ ensureDirectoryStructure();
  */
 function startServer() {
   // サーバーの初期化
-  const express = require('express');
   const app = express();
   const port = process.env.PORT || 3000;
   
