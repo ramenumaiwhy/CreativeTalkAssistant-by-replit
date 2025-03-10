@@ -8,17 +8,28 @@ import { Conversation } from "@/types";
  * APIキーは環境変数から取得します。APIキーとは、外部サービスを利用するための
  * 「鍵」のようなもので、これがないとサービスを使うことができません。
  */
-// APIキーを環境変数から取得
+// APIキーを環境変数から取得（Vercel対応）
 let apiKey = process.env.GOOGLE_API_KEY || '';
-// APIキーが正しい形式でない場合の補正処理
-if (apiKey.includes('GOOGLE_GENERATIVE_AI_API_KEY=')) {
+
+// APIキーが"GOOGLE_API_KEY="または"GOOGLE_GENERATIVE_AI_API_KEY="の形式で設定されている場合の補正処理
+if (apiKey.includes('GOOGLE_API_KEY=')) {
   apiKey = apiKey.split('=')[1];
+  console.log("Extracted API key from GOOGLE_API_KEY format");
+} else if (apiKey.includes('GOOGLE_GENERATIVE_AI_API_KEY=')) {
+  apiKey = apiKey.split('=')[1];
+  console.log("Extracted API key from GOOGLE_GENERATIVE_AI_API_KEY format");
 }
+
 // APIキーの先頭が「AIza」で始まるかチェック（一般的なGoogle APIキーの形式）
+// APIキーがVercelのシークレット環境変数で暗号化されている場合は警告を表示しない
 if (!apiKey.startsWith('AIza')) {
-  console.error("API Key may be invalid - does not start with 'AIza'");
+  console.warn("WARNING: API Key may be invalid - does not start with 'AIza'");
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    console.log("Running in production environment, API key validation skipped");
+  }
+} else {
+  console.log("API Key format verified:", apiKey.substring(0, 5) + "****");
 }
-console.log("API Key format:", apiKey.substring(0, 5) + "****");
 let genAI: GoogleGenerativeAI | null = null;
 
 try {

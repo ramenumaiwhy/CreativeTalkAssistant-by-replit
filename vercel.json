@@ -10,6 +10,7 @@
     {
       "src": "/ws",
       "dest": "/server/index.ts",
+      "continue": true,
       "headers": {
         "Connection": "upgrade",
         "Upgrade": "websocket"
@@ -26,5 +27,30 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "functions": {
+    "server/index.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
 }
