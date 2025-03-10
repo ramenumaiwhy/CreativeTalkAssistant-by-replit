@@ -111,11 +111,11 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // サーバーをポート5000で起動
+  // サーバーをポートで起動（環境変数やVercelでのデプロイに対応）
   // （「ポート」とは、コンピュータの「入り口」のようなものです）
-  const port = 5000;
+  const port = process.env.PORT || 5000;
   server.listen({
-    port,
+    port: Number(port),
     host: "0.0.0.0",  // すべてのネットワークインターフェースでリッスン
     reusePort: true,  // ポートの再利用を許可
   }, () => {
