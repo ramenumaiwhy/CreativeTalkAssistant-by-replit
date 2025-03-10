@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useConversation, useSendMessage } from "@/hooks/use-conversation";
+import { useWebSocket } from "@/hooks/use-websocket";
 import { Message } from "@/types";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
-import { Loader2, Info, FileText } from "lucide-react";
+import { Loader2, Info, FileText, Wifi, WifiOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 /**
@@ -39,11 +40,15 @@ interface ChatInterfaceProps {
 export default function ChatInterface({ conversationId, onOpenContext, onExport }: ChatInterfaceProps) {
   // 会話データを取得するためのフック
   // （指定されたIDの会話情報を取得します）
-  const { data: conversation, isLoading } = useConversation(conversationId);
+  const { data: conversation, isLoading, refetch } = useConversation(conversationId);
 
   // メッセージを送信するためのフック
   // （新しいメッセージをサーバーに送信する機能です）
   const { mutate: sendMessage, isPending } = useSendMessage();
+
+  // WebSocketを使用するためのフック
+  // （リアルタイムでの会話の更新を受信します）
+  const { status: wsStatus, lastMessage } = useWebSocket(conversationId);
 
   // トースト通知を表示するためのフック
   // （画面に通知メッセージを表示する機能です）
@@ -55,6 +60,9 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
   
   // 一時的なメッセージ表示用の状態（サーバー応答前に表示するため）
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  
+  // AIの応答タイピング中の状態
+  const [isAiTyping, setIsAiTyping] = useState(false);
 
   /**
    * 自動保存時間の表示を更新する効果
@@ -97,6 +105,51 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
       setOptimisticMessages([]);
     }
   }, [conversation]);
+  
+  /**
+   * WebSocketからのメッセージを処理する効果
+   * 
+   * WebSocketから受信したメッセージの種類に応じて、適切な処理を行います。
+   * - 新しいメッセージが届いた場合、会話データを再取得
+   * - コンテキストが更新された場合、会話データを再取得
+   * - メッセージの状態（送信中、応答中など）に応じてUIを更新
+   */
+  useEffect(() => {
+    if (!lastMessage) return;
+    
+    try {
+      const data = lastMessage;
+      console.log("WebSocket message received:", data);
+      
+      // メッセージタイプに応じた処理
+      if (data.type === 'update') {
+        const updateData = data.data;
+        
+        // 新しいメッセージを受信した場合
+        if (updateData.type === 'new_message') {
+          // メッセージの状態に応じた処理
+          if (updateData.status === 'user_message_sent') {
+            console.log("User message confirmed by server");
+          } else if (updateData.status === 'ai_response_complete') {
+            console.log("AI response complete, refreshing conversation");
+            // タイピング中の状態を解除
+            setIsAiTyping(false);
+            // 会話データを再取得
+            refetch();
+          }
+        }
+        
+        // コンテキストが更新された場合
+        else if (updateData.type === 'context_updated') {
+          console.log("Context updated, refreshing conversation");
+          // 会話データを再取得
+          refetch();
+        }
+      }
+    } catch (error) {
+      console.error("Error processing WebSocket message:", error);
+    }
+  }, [lastMessage, refetch]);
   
   /**
    * メッセージを送信する関数
@@ -209,8 +262,28 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
       {/* チャットメッセージ一覧 - 一時メッセージを含める */}
       <MessageList 
         messages={[...(conversation?.messages || []), ...optimisticMessages]} 
-        isTyping={isPending} 
+        isTyping={isPending || isAiTyping} 
       />
+      
+      {/* WebSocket接続状態 */}
+      <div className="px-3 py-1 text-xs flex items-center">
+        {wsStatus === 'open' ? (
+          <span className="flex items-center text-green-600">
+            <Wifi className="h-3 w-3 mr-1" />
+            リアルタイム接続中
+          </span>
+        ) : wsStatus === 'connecting' ? (
+          <span className="flex items-center text-amber-600">
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            接続中...
+          </span>
+        ) : (
+          <span className="flex items-center text-gray-400">
+            <WifiOff className="h-3 w-3 mr-1" />
+            サーバーと接続されていません
+          </span>
+        )}
+      </div>
       
       {/* デバッグ用：会話データを確認（常に表示） */}
       <div className="bg-yellow-50 p-2 text-xs border-t border-yellow-200">
