@@ -17,7 +17,7 @@ npx tsc --project tsconfig.json
 # ビルド後の確認
 echo "Build completed successfully."
 echo "Client assets in dist/client"
-echo "Server assets in dist"
+echo "Server assets in dist/server"
 
 # デプロイ用のディレクトリ構造を確認
 echo "Verifying build output structure..."
@@ -40,5 +40,16 @@ else
   mkdir -p dist/server
   echo "console.log('Server starting...');" > dist/server/index.js
 fi
+
+# Vercelデプロイのための特別な対応 - サーバーが期待する場所にpublicディレクトリを作成
+echo "Creating required server/public directory for Vercel deployment..."
+mkdir -p server/public
+cp -r dist/client/* server/public/ || true
+
+# 検証のためにファイル一覧を表示
+echo "File structure verification:"
+find dist -type f | sort
+echo "---"
+find server/public -type f 2>/dev/null | sort || echo "No files in server/public"
 
 echo "✅ Build structure verified successfully."

@@ -6,14 +6,14 @@
   "framework": "vite",
   "builds": [
     {
-      "src": "dist/server/index.js",
+      "src": "vercel-start.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/ws",
-      "dest": "/dist/server/index.js",
+      "dest": "/vercel-start.js",
       "continue": true,
       "headers": {
         "Connection": "upgrade",
@@ -22,30 +22,31 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "/dist/server/index.js"
+      "dest": "/vercel-start.js"
     },
     {
       "src": "^/assets/(.*)",
-      "dest": "/client/assets/$1"
+      "dest": "/dist/client/assets/$1"
     },
     {
       "src": "^/favicon\\.ico",
-      "dest": "/client/favicon.ico"
+      "dest": "/dist/client/favicon.ico"
     },
     {
       "src": "^/index\\.html",
-      "dest": "/client/index.html"
+      "dest": "/dist/client/index.html"
     },
     {
       "src": "/(.*)",
-      "dest": "/dist/server/index.js"
+      "dest": "/vercel-start.js"
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "VERCEL": "1"
   },
   "functions": {
-    "dist/server/index.js": {
+    "vercel-start.js": {
       "memory": 1024,
       "maxDuration": 60
     }
