@@ -4,8 +4,9 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { Message } from "@/types";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
-import { Loader2, Info, FileText, Wifi, WifiOff } from "lucide-react";
+import { Loader2, Info, FileText, Wifi, WifiOff, AlertTriangle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * チャットインターフェースのプロパティ（設定項目）
@@ -48,7 +49,14 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
 
   // WebSocketを使用するためのフック
   // （リアルタイムでの会話の更新を受信します）
-  const { status: wsStatus, lastMessage } = useWebSocket(conversationId);
+  const { 
+    status: wsStatus, 
+    lastMessage, 
+    isConnecting,
+    isSubscribed,
+    errorCount,
+    diagnostics 
+  } = useWebSocket(conversationId);
 
   // トースト通知を表示するためのフック
   // （画面に通知メッセージを表示する機能です）
@@ -266,22 +274,58 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
       />
       
       {/* WebSocket接続状態 */}
-      <div className="px-3 py-1 text-xs flex items-center">
-        {wsStatus === 'open' ? (
-          <span className="flex items-center text-green-600">
-            <Wifi className="h-3 w-3 mr-1" />
-            リアルタイム接続中
-          </span>
-        ) : wsStatus === 'connecting' ? (
-          <span className="flex items-center text-amber-600">
-            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-            接続中...
-          </span>
-        ) : (
-          <span className="flex items-center text-gray-400">
-            <WifiOff className="h-3 w-3 mr-1" />
-            サーバーと接続されていません
-          </span>
+      <div className="px-3 py-1 text-xs flex items-center justify-between border-t border-gray-100">
+        <div className="flex items-center">
+          {wsStatus === 'open' && isSubscribed ? (
+            <span className="flex items-center text-green-600">
+              <Wifi className="h-3 w-3 mr-1" />
+              リアルタイム接続中
+              <Badge variant="outline" className="ml-2 text-[9px] px-1 py-0 h-4 bg-green-50">
+                購読済み
+              </Badge>
+            </span>
+          ) : wsStatus === 'open' && !isSubscribed ? (
+            <span className="flex items-center text-amber-600">
+              <Wifi className="h-3 w-3 mr-1" />
+              接続中 (購読登録中...)
+            </span>
+          ) : wsStatus === 'connecting' || wsStatus === 'reconnecting' ? (
+            <span className="flex items-center text-amber-600">
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              {wsStatus === 'reconnecting' ? '再接続中...' : '接続中...'}
+              {diagnostics.reconnectAttempts > 0 && (
+                <Badge variant="outline" className="ml-2 text-[9px] px-1 py-0 h-4 bg-amber-50">
+                  試行: {diagnostics.reconnectAttempts}/{diagnostics.maxReconnectAttempts}
+                </Badge>
+              )}
+            </span>
+          ) : wsStatus === 'error' ? (
+            <span className="flex items-center text-red-600">
+              <AlertTriangle className="h-3 w-3 mr-1" />
+              接続エラー
+              {errorCount > 0 && (
+                <Badge variant="outline" className="ml-2 text-[9px] px-1 py-0 h-4 bg-red-50">
+                  エラー: {errorCount}
+                </Badge>
+              )}
+            </span>
+          ) : (
+            <span className="flex items-center text-gray-400">
+              <WifiOff className="h-3 w-3 mr-1" />
+              サーバーと接続されていません
+            </span>
+          )}
+        </div>
+        
+        {wsStatus === 'error' && (
+          <button 
+            onClick={() => window.location.reload()}
+            className="text-[10px] px-1.5 py-0.5 bg-gray-100 hover:bg-gray-200 rounded flex items-center text-gray-700"
+            title="ページを再読み込み"
+          >
+            <RefreshCw className="h-2.5 w-2.5 mr-1" />
+            再接続
+          </button>
         )}
       </div>
       
