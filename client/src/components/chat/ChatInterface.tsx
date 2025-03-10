@@ -244,6 +244,25 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
 
         {/* 右側のボタン群 */}
         <div className="flex items-center space-x-2">
+          {/* WebSocket接続ステータス表示 */}
+          <div className="flex items-center mr-2">
+            <div 
+              className={`h-2 w-2 rounded-full mr-1 ${
+                wsStatus === 'open' ? 'bg-green-500' : 
+                wsStatus === 'connecting' || wsStatus === 'reconnecting' ? 'bg-yellow-500 animate-pulse' : 
+                'bg-red-500'
+              }`} 
+            />
+            <span className="text-xs text-gray-500">
+              {wsStatus === 'open' ? '接続済み' : 
+               wsStatus === 'connecting' ? '接続中...' : 
+               wsStatus === 'reconnecting' ? '再接続中...' : 
+               wsStatus === 'error' ? 'エラー' : '切断'
+              }
+              {errorCount > 0 && ` (${errorCount}回失敗)`}
+            </span>
+          </div>
+
           {/* 自動保存の時間表示 */}
           <span className="text-xs text-gray-500">自動保存: {autoSaveTime}</span>
 
