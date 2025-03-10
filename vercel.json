@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "installCommand": "./vercel-install.sh",
-  "buildCommand": "./vercel-build.sh",
+  "installCommand": "npm install && npm install --save-dev tsx esbuild typescript @vercel/node",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
   "builds": [
