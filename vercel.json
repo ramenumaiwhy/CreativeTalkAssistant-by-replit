@@ -1,40 +1,43 @@
 {
   "version": 2,
   "installCommand": "npm install && npm install --save-dev tsx esbuild typescript @vercel/node",
-  "buildCommand": "npm run build",
+  "buildCommand": "./vercel-build.sh",
   "outputDirectory": "dist",
   "framework": "vite",
+  "public": true,
   "builds": [
     {
       "src": "vercel-start.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "dist/client/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/ws",
-      "dest": "/vercel-start.js",
-      "continue": true,
-      "headers": {
-        "Connection": "upgrade",
-        "Upgrade": "websocket"
-      }
+      "src": "/assets/(.*)",
+      "dest": "/dist/client/assets/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/dist/client/favicon.ico"
     },
     {
       "src": "/api/(.*)",
       "dest": "/vercel-start.js"
     },
     {
-      "src": "^/assets/(.*)",
-      "dest": "/dist/client/assets/$1"
+      "src": "/ws",
+      "dest": "/vercel-start.js",
+      "headers": {
+        "Connection": "upgrade",
+        "Upgrade": "websocket"
+      }
     },
     {
-      "src": "^/favicon\\.ico",
-      "dest": "/dist/client/favicon.ico"
-    },
-    {
-      "src": "^/index\\.html",
-      "dest": "/dist/client/index.html"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
