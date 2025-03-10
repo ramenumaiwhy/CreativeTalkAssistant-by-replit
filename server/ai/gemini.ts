@@ -164,8 +164,27 @@ export async function processMessageWithAI(conversation: Conversation, systemPro
       if (history.length > 0 && history.length <= maxMessagesForChat) {
         // チャット履歴でセッションを開始
         console.log(`Using chat mode with ${history.length} messages (max: ${maxMessagesForChat})`);
+        
+        // ヒストリー形式最適化: 最大メッセージ数を考慮しつつ、会話の流れを維持
+        let optimizedHistory = [...history];
+        if (history.length > 5) {
+          // メッセージが多い場合は最初のシステムメッセージと最近のメッセージのみを保持
+          const systemMessages = history.filter(msg => msg.parts[0].text.startsWith('[SYSTEM]'));
+          const recentMessages = history.slice(-5); // 最新の5メッセージ
+          
+          // システムメッセージとユーザーメッセージの組み合わせを最適化
+          if (systemMessages.length > 0) {
+            optimizedHistory = [...systemMessages, ...recentMessages.filter(msg => !msg.parts[0].text.startsWith('[SYSTEM]'))];
+            console.log(`Optimized history: ${optimizedHistory.length} messages (${systemMessages.length} system + ${optimizedHistory.length - systemMessages.length} recent)`);
+          } else {
+            optimizedHistory = recentMessages;
+            console.log(`Optimized history: ${optimizedHistory.length} recent messages`);
+          }
+        }
+        
+        // チャットセッション開始
         const chat = model.startChat({
-          history,
+          history: optimizedHistory,
           systemInstruction: prompt,
         });
         
@@ -179,26 +198,48 @@ export async function processMessageWithAI(conversation: Conversation, systemPro
           console.log(`  ${i+1}: ${msg.content.substring(0, 40)}...`);
         });
         
-        // 最後のユーザーメッセージを使用してAIに送信
-        console.log(`Sending empty message to continue conversation`);
-        result = await chat.sendMessage("");
+        // 最後のユーザーメッセージまたは空メッセージを使用
+        const lastUserMsg = lastUserMsgs.length > 0 ? lastUserMsgs[lastUserMsgs.length - 1].content : "";
+        console.log(`Sending to AI: ${lastUserMsg.substring(0, 40)}${lastUserMsg.length > 40 ? '...' : ''}`);
+        
+        result = await chat.sendMessage(lastUserMsg || "");
         console.log(`Received response from AI`);
       } else {
-        // 履歴が長すぎる場合や履歴がない場合は単一のリクエストとして送信
-        console.log(`Using single prompt mode: message count (${history.length}) exceeds limit or is empty`);
+        // 履歴が長すぎる場合や履歴がない場合は最適化されたリクエストとして送信
+        console.log(`Using optimized prompt mode: message count (${history.length}) exceeds limit or is empty`);
         
-        // システムプロンプトと直近のメッセージだけを使用
+        // システムプロンプトと重要なメッセージの組み合わせを作成
         const userMessages = conversation.messages.filter(msg => msg.role === 'user');
-        console.log(`Found ${userMessages.length} user messages`);
+        const assistantMessages = conversation.messages.filter(msg => msg.role === 'assistant');
+        console.log(`Found ${userMessages.length} user messages and ${assistantMessages.length} assistant messages`);
         
+        // 最後のユーザーメッセージを取得
         const lastUserMsg = userMessages.length > 0 ? 
           userMessages[userMessages.length - 1] : 
           { content: "こんにちは" };
         
+        // 直近の会話コンテキストを構築（最大3往復まで）
+        let conversationContext = "";
+        const maxTurns = Math.min(3, Math.min(userMessages.length, assistantMessages.length));
+        
+        if (maxTurns > 0) {
+          conversationContext = "\n\n# 直近の会話\n";
+          
+          for (let i = 1; i <= maxTurns; i++) {
+            const userIdx = userMessages.length - i;
+            const assistantIdx = assistantMessages.length - i;
+            
+            if (userIdx >= 0 && assistantIdx >= 0) {
+              conversationContext += `\nユーザー: ${userMessages[userIdx].content.substring(0, 100)}${userMessages[userIdx].content.length > 100 ? '...' : ''}\n`;
+              conversationContext += `アシスタント: ${assistantMessages[assistantIdx].content.substring(0, 100)}${assistantMessages[assistantIdx].content.length > 100 ? '...' : ''}\n`;
+            }
+          }
+        }
+        
         console.log(`Using last user message: ${lastUserMsg.content.substring(0, 40)}...`);
         
-        const fullPrompt = `${prompt}\n\n以下は最新のユーザーメッセージです:\n${lastUserMsg.content}`;
-        console.log(`Sending single prompt request`);
+        const fullPrompt = `${prompt}${conversationContext}\n\n# 最新のユーザーメッセージ\n${lastUserMsg.content}`;
+        console.log(`Sending optimized prompt request with context summary`);
         result = await model.generateContent(fullPrompt);
         console.log(`Received response from AI`);
       }
