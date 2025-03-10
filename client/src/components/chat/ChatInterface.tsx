@@ -52,6 +52,9 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
   // 自動保存の時間を表示するための状態
   // （「いつ保存されたか」を表示するための変数です）
   const [autoSaveTime, setAutoSaveTime] = useState<string>("たった今");
+  
+  // 一時的なメッセージ表示用の状態（サーバー応答前に表示するため）
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
 
   /**
    * 自動保存時間の表示を更新する効果
@@ -86,9 +89,20 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
   }, [conversation?.lastSaved]); // 最後の保存時間が変わったときに効果を再実行
 
   /**
+   * 一時的なメッセージリストを更新する効果
+   * サーバーから最新の会話データが取得されたら、一時メッセージをクリアする
+   */
+  useEffect(() => {
+    if (conversation) {
+      setOptimisticMessages([]);
+    }
+  }, [conversation]);
+  
+  /**
    * メッセージを送信する関数
    * 
-   * ユーザーが入力したメッセージをサーバーに送信し、AIからの返答を取得します。
+   * ユーザーが入力したメッセージをUIに即時表示し、サーバーに送信します。
+   * サーバーからの応答を取得した後、最新の会話を表示します。
    * 送信に失敗した場合は、エラーメッセージを表示します。
    * 
    * @param content - 送信するメッセージの内容
@@ -97,12 +111,29 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
     // 空のメッセージは送信しない
     if (!content.trim()) return;
 
+    // 一時的なユーザーメッセージを作成（即時表示用）
+    const tempUserMessage: Message = {
+      id: `temp-${Date.now()}`,
+      conversationId,
+      role: 'user',
+      content,
+      createdAt: new Date().toISOString(),
+    };
+
+    // UIに即時表示するために一時メッセージに追加
+    setOptimisticMessages(prev => [...prev, tempUserMessage]);
+
     // メッセージを送信
     sendMessage(
       { conversationId, content },
       {
         // エラーが発生した場合の処理
         onError: (error) => {
+          // 一時メッセージから失敗したメッセージを削除
+          setOptimisticMessages(prev => 
+            prev.filter(msg => msg.id !== tempUserMessage.id)
+          );
+          
           // トースト通知でエラーメッセージを表示
           toast({
             title: "メッセージ送信エラー",
@@ -175,9 +206,9 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
         </div>
       </div>
 
-      {/* チャットメッセージ一覧 */}
+      {/* チャットメッセージ一覧 - 一時メッセージを含める */}
       <MessageList 
-        messages={conversation?.messages || []} 
+        messages={[...(conversation?.messages || []), ...optimisticMessages]} 
         isTyping={isPending} 
       />
       
@@ -185,11 +216,14 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
       <div className="bg-yellow-50 p-2 text-xs border-t border-yellow-200">
         <details>
           <summary className="cursor-pointer">デバッグ情報</summary>
-          <p>メッセージ数: {conversation?.messages?.length || 0}</p>
+          <p>サーバーメッセージ: {conversation?.messages?.length || 0}</p>
+          <p>一時メッセージ: {optimisticMessages.length}</p>
+          <p>表示メッセージ合計: {(conversation?.messages?.length || 0) + optimisticMessages.length}</p>
           <p>会話ID: {conversationId}</p>
           <p>会話タイトル: {conversation?.title || '不明'}</p>
+          <p>送信中: {isPending ? 'はい' : 'いいえ'}</p>
           <pre className="mt-2 bg-white p-1 rounded text-[9px] max-h-24 overflow-auto">
-            {JSON.stringify(conversation?.messages || [], null, 2)}
+            {JSON.stringify([...(conversation?.messages || []), ...optimisticMessages], null, 2)}
           </pre>
         </details>
       </div>
