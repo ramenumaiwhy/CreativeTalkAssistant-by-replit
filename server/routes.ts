@@ -40,7 +40,10 @@ const subscriptions = new Map<string, Set<WebSocket>>();
 function notifySubscribers(conversationId: string, data: any) {
   // 指定された会話IDを監視しているクライアント接続のセットを取得
   const subscribers = subscriptions.get(conversationId);
-  if (!subscribers) return;  // 監視しているクライアントがなければ何もしない
+  if (!subscribers) {
+    console.log(`WebSocket: No subscribers found for conversation: ${conversationId}`);
+    return;  // 監視しているクライアントがなければ何もしない
+  }
 
   // 送信するメッセージをJSON形式に変換
   // JSON（JavaScript Object Notation）とは、データを構造化して表現するためのテキスト形式です
@@ -50,13 +53,19 @@ function notifySubscribers(conversationId: string, data: any) {
     data
   });
 
+  console.log(`WebSocket: Notifying ${subscribers.size} subscribers for conversation: ${conversationId}, data type: ${data.type}`);
+  
   // 各クライアント接続にメッセージを送信
+  let sentCount = 0;
   subscribers.forEach(client => {
     // クライアントが接続中（OPEN状態）の場合のみ送信
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
+      sentCount++;
     }
   });
+  
+  console.log(`WebSocket: Message sent to ${sentCount}/${subscribers.size} clients`);
 }
 
 /**
@@ -418,8 +427,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // WebSocketサーバーの初期化
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
-  wss.on('connection', (ws) => {
-    console.log('WebSocket client connected');
+  // 接続数をカウントして表示するための変数
+  let connectionCount = 0;
+  
+  wss.on('connection', (ws, req) => {
+    connectionCount++;
+    const clientIP = req.socket.remoteAddress || 'unknown';
+    console.log(`WebSocket client connected (total: ${connectionCount}, IP: ${clientIP})`);
 
     // 接続ごとに購読中の会話IDを保持
     let subscribedConversationId: string | null = null;
@@ -428,6 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
+        console.log(`WebSocket received message: ${message.toString().substring(0, 100)}...`);
 
         if (data.type === 'subscribe' && data.conversationId) {
           // 以前の購読があれば解除
@@ -466,19 +481,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     // 接続が閉じられたときの処理
-    ws.on('close', () => {
-      console.log('WebSocket client disconnected');
+    ws.on('close', (code, reason) => {
+      connectionCount--;
+      console.log(`WebSocket client disconnected (remaining: ${connectionCount}, code: ${code}, reason: ${reason || 'なし'})`);
 
       // 購読を解除
       if (subscribedConversationId) {
         const subscribers = subscriptions.get(subscribedConversationId);
         if (subscribers) {
           subscribers.delete(ws);
+          console.log(`Unsubscribed client from conversation: ${subscribedConversationId}, remaining subscribers: ${subscribers.size}`);
           if (subscribers.size === 0) {
             subscriptions.delete(subscribedConversationId);
+            console.log(`Removed conversation ${subscribedConversationId} from subscriptions, total conversations: ${subscriptions.size}`);
           }
         }
       }
+      
+      // 現在の購読状態をログに表示
+      console.log(`Current subscription state: ${subscriptions.size} conversations being subscribed`);
     });
   });
 

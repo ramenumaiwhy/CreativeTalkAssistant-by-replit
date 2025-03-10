@@ -295,7 +295,28 @@ export default function ChatInterface({ conversationId, onOpenContext, onExport 
           <p>会話ID: {conversationId}</p>
           <p>会話タイトル: {conversation?.title || '不明'}</p>
           <p>送信中: {isPending ? 'はい' : 'いいえ'}</p>
-          <pre className="mt-2 bg-white p-1 rounded text-[9px] max-h-24 overflow-auto">
+          <p>WebSocket状態: {wsStatus}</p>
+          <p>AI応答タイピング中: {isAiTyping ? 'はい' : 'いいえ'}</p>
+          <div className="mt-2 flex space-x-2">
+            <button 
+              onClick={() => setIsAiTyping(!isAiTyping)}
+              className="px-2 py-1 bg-gray-200 rounded text-gray-700 hover:bg-gray-300 text-[10px]"
+            >
+              {isAiTyping ? 'タイピング停止' : 'タイピング開始'}
+            </button>
+            <button 
+              onClick={() => refetch()}
+              className="px-2 py-1 bg-blue-100 rounded text-blue-700 hover:bg-blue-200 text-[10px]"
+            >
+              会話再取得
+            </button>
+          </div>
+          <p className="mt-1 font-semibold">最後のWebSocketメッセージ:</p>
+          <pre className="bg-white p-1 rounded text-[9px] max-h-24 overflow-auto">
+            {lastMessage ? JSON.stringify(lastMessage, null, 2) : 'なし'}
+          </pre>
+          <p className="mt-1 font-semibold">会話メッセージ:</p>
+          <pre className="mt-1 bg-white p-1 rounded text-[9px] max-h-24 overflow-auto">
             {JSON.stringify([...(conversation?.messages || []), ...optimisticMessages], null, 2)}
           </pre>
         </details>
