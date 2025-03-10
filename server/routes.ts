@@ -1,11 +1,39 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { handleLineWebhook } from "./line/handlers";
 import { processMessageWithAI } from "./ai/gemini";
 import { createSystemPrompt } from "./prd-content";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
+
+// WebSocket接続を保持するためのマップ
+// キー: 会話ID, 値: その会話を購読している接続のセット
+const subscriptions = new Map<string, Set<WebSocket>>();
+
+/**
+ * 指定した会話IDに対する更新を購読者に通知する
+ * 
+ * @param conversationId 更新された会話のID
+ * @param data 送信するデータ
+ */
+function notifySubscribers(conversationId: string, data: any) {
+  const subscribers = subscriptions.get(conversationId);
+  if (!subscribers) return;
+
+  const message = JSON.stringify({
+    type: 'update',
+    conversationId,
+    data
+  });
+
+  subscribers.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
 
 // Zod schemas for validation
 const contextSchema = z.object({
@@ -112,6 +140,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Saving user message to conversation ${conversationId}`);
       await storage.updateConversation(conversation);
       
+      // WebSocketを通じてユーザーメッセージを即時通知
+      notifySubscribers(conversationId, {
+        type: 'new_message',
+        message: userMessage,
+        status: 'user_message_sent'
+      });
+      
       // AIによる処理を実行
       console.log(`Processing conversation with AI: ${conversationId}`);
       const systemPrompt = await createSystemPrompt();
@@ -157,6 +192,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 会話を保存
       console.log(`Saving updated conversation: ${conversationId}, total messages: ${conversation.messages.length}`);
       await storage.updateConversation(conversation);
+      
+      // AIの応答をWebSocket経由で通知
+      notifySubscribers(conversationId, {
+        type: 'new_message',
+        message: assistantMessage,
+        status: 'ai_response_complete',
+        metadata: {
+          title: aiResponse.title,
+          keyPoints: aiResponse.keyPoints,
+          summary: aiResponse.summary,
+          tags: aiResponse.tags
+        }
+      });
       
       // 更新された会話を返す
       res.json(conversation);
@@ -215,6 +263,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       conversation.updatedAt = new Date().toISOString();
       
       await storage.updateConversation(conversation);
+      
+      // コンテキスト更新をWebSocket経由で通知
+      notifySubscribers(conversationId, {
+        type: 'context_updated',
+        context: context
+      });
       
       res.json(conversation);
     } catch (error) {
@@ -290,6 +344,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   const httpServer = createServer(app);
+  
+  // WebSocketサーバーの初期化
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  wss.on('connection', (ws) => {
+    console.log('WebSocket client connected');
+    
+    // 接続ごとに購読中の会話IDを保持
+    let subscribedConversationId: string | null = null;
+
+    // クライアントからのメッセージを処理
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        if (data.type === 'subscribe' && data.conversationId) {
+          // 以前の購読があれば解除
+          if (subscribedConversationId) {
+            const oldSubscribers = subscriptions.get(subscribedConversationId);
+            if (oldSubscribers) {
+              oldSubscribers.delete(ws);
+              if (oldSubscribers.size === 0) {
+                subscriptions.delete(subscribedConversationId);
+              }
+            }
+          }
+          
+          // 新しい会話を購読
+          subscribedConversationId = data.conversationId;
+          let subscribers = subscriptions.get(subscribedConversationId);
+          
+          if (!subscribers) {
+            subscribers = new Set();
+            subscriptions.set(subscribedConversationId, subscribers);
+          }
+          
+          subscribers.add(ws);
+          console.log(`Client subscribed to conversation: ${subscribedConversationId}`);
+          
+          // 購読成功を通知
+          ws.send(JSON.stringify({
+            type: 'subscribed',
+            conversationId: subscribedConversationId
+          }));
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+
+    // 接続が閉じられたときの処理
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      
+      // 購読を解除
+      if (subscribedConversationId) {
+        const subscribers = subscriptions.get(subscribedConversationId);
+        if (subscribers) {
+          subscribers.delete(ws);
+          if (subscribers.size === 0) {
+            subscriptions.delete(subscribedConversationId);
+          }
+        }
+      }
+    });
+  });
   
   return httpServer;
 }
