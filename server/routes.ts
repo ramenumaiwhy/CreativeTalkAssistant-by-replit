@@ -54,7 +54,7 @@ function notifySubscribers(conversationId: string, data: any) {
   });
 
   console.log(`WebSocket: Notifying ${subscribers.size} subscribers for conversation: ${conversationId}, data type: ${data.type}`);
-  
+
   // 各クライアント接続にメッセージを送信
   let sentCount = 0;
   subscribers.forEach(client => {
@@ -64,7 +64,7 @@ function notifySubscribers(conversationId: string, data: any) {
       sentCount++;
     }
   });
-  
+
   console.log(`WebSocket: Message sent to ${sentCount}/${subscribers.size} clients`);
 }
 
@@ -429,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // 接続数をカウントして表示するための変数
   let connectionCount = 0;
-  
+
   wss.on('connection', (ws, req) => {
     connectionCount++;
     const clientIP = req.socket.remoteAddress || 'unknown';
@@ -497,7 +497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-      
+
       // 現在の購読状態をログに表示
       console.log(`Current subscription state: ${subscriptions.size} conversations being subscribed`);
     });

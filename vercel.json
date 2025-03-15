@@ -1,13 +1,11 @@
 {
   "version": 2,
   "installCommand": "npm install",
-  "buildCommand": "mkdir -p dist/client dist/server && npm run build && ([ -d \"dist/assets\" ] && mv dist/assets dist/client/ || echo \"No assets directory\") && ([ -f \"dist/index.html\" ] && mv dist/index.html dist/client/ || echo \"No index.html file\")",
+  "buildCommand": "node vercel-build.js",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "public": true,
   "builds": [
     {
-      "src": "vercel-start.js",
+      "src": "server.js",
       "use": "@vercel/node"
     },
     {
@@ -21,56 +19,19 @@
       "dest": "/dist/client/assets/$1"
     },
     {
-      "src": "/favicon.ico",
-      "dest": "/dist/client/favicon.ico"
-    },
-    {
       "src": "/api/(.*)",
-      "dest": "/vercel-start.js"
-    },
-    {
-      "src": "/ws",
-      "dest": "/vercel-start.js",
-      "headers": {
-        "Connection": "upgrade",
-        "Upgrade": "websocket"
-      }
+      "dest": "/server.js"
     },
     {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/vercel-start.js"
+      "dest": "/server.js"
     }
   ],
   "env": {
     "NODE_ENV": "production",
     "VERCEL": "1"
-  },
-  "functions": {
-    "vercel-start.js": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  },
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
-    }
-  ]
+  }
 }
