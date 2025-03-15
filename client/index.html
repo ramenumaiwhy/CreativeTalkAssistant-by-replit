@@ -1,14 +1,58 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- キャッシュを無効化するメタタグ -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>ConstructiveTalk - 創造的な対話プラットフォーム</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <meta name="description" content="評価懸念のない対話環境での創造性の解放と、アイデアの持続的な発展を支援するAIプラットフォーム">
+  <script>
+    // WebSocketエラーを処理
+    window.addEventListener('error', function (event) {
+      // WebSocketエラーを無視
+      if (event && event.message && (
+        event.message.includes('WebSocket') ||
+        event.message.includes('ws://') ||
+        event.message.includes('wss://')
+      )) {
+        console.log('WebSocketエラーを検出しました - 無視して続行します');
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
+
+    // サーバーの準備状態を確認し、準備完了時に続行ボタンの動作を改善するスクリプト
+    window.addEventListener('DOMContentLoaded', function () {
+      console.log('DOMContentLoaded: ページが読み込まれました');
+
+      // 続行ボタンがクリックされたときの処理を改善
+      document.addEventListener('click', function (e) {
+        // 続行ボタンかどうかを確認
+        if (e.target &&
+          ((e.target.classList && e.target.classList.contains('green-button')) ||
+            (e.target.id === 'continue-button'))) {
+          console.log('続行ボタンがクリックされました (HTML)');
+
+          // イベントの伝播を停止
+          e.stopPropagation();
+          e.preventDefault();
+
+          // チャットページに直接移動
+          window.location.href = '/chat';
+        }
+      }, true); // キャプチャフェーズでイベントをリッスン
+    });
+  </script>
 </head>
+
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
+
 </html>

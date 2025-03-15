@@ -45,11 +45,11 @@ function moveFiles(source, destination) {
     console.warn(`⚠️ Source does not exist: ${source}`);
     return false;
   }
-  
+
   if (!fs.existsSync(path.dirname(destination))) {
     ensureDir(path.dirname(destination));
   }
-  
+
   try {
     if (fs.statSync(source).isDirectory()) {
       // Recursively copy directory
@@ -83,7 +83,7 @@ if (!runCommand('npx vite build', 'Failed to build client-side application')) {
 // ステップ 3: ビルドプロセス - サーバーサイド
 console.log('🔨 Building server-side...');
 if (!runCommand(
-  'npx esbuild server/index.ts --platform=node --packages=external --bundle --format=cjs --outdir=dist/server', 
+  'npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server',
   'Failed to build server-side application'
 )) {
   process.exit(1);

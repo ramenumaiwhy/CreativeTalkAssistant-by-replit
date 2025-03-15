@@ -1,16 +1,22 @@
-// server.js - シンプルなNode.js Expressサーバー (CommonJS形式)
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
+// server.js - シンプルなNode.js Expressサーバー (ESモジュール形式)
+import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+// ESモジュールでの__dirnameと__filenameの代替
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Expressアプリの初期化
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 // 環境変数とシステム状態の出力
 console.log('Server starting with:');
 console.log('- NODE_ENV:', process.env.NODE_ENV || 'development');
 console.log('- Current directory:', process.cwd());
+console.log('- Using port:', port);
 try {
   console.log('- Available files:', fs.readdirSync('.').join(', '));
 } catch (err) {
@@ -39,24 +45,29 @@ if (fs.existsSync(clientDir)) {
 }
 
 // モジュール形式検出
-const isESM = typeof require === 'undefined' || typeof import.meta !== 'undefined';
-console.log('Module format:', isESM ? 'ESM' : 'CommonJS');
+const isESM = true; // ESモジュールとして実行されているので常にtrue
+console.log('Module format: ESM');
 
 // サーバーサイドのモジュールをロードする試み
 let serverModule = null;
-try {
-  // ビルド済みのサーバーモジュールが存在する場合それを使用
-  const serverPath = path.join(process.cwd(), 'dist', 'server', 'index.js');
-  if (fs.existsSync(serverPath)) {
-    console.log('Loading server module from:', serverPath);
-    serverModule = require(serverPath);
-    console.log('Server module loaded successfully');
-  } else {
-    console.log('Server module not found at:', serverPath);
+
+// トップレベルのawaitを非同期関数内に移動
+(async function loadServerModule() {
+  try {
+    // ビルド済みのサーバーモジュールが存在する場合それを使用
+    const serverPath = path.join(process.cwd(), 'dist', 'server', 'index.js');
+    if (fs.existsSync(serverPath)) {
+      console.log('Loading server module from:', serverPath);
+      // ESMではdynamic importを使用
+      serverModule = await import(serverPath);
+      console.log('Server module loaded successfully');
+    } else {
+      console.log('Server module not found at:', serverPath);
+    }
+  } catch (err) {
+    console.error('Failed to load server module:', err);
   }
-} catch (err) {
-  console.error('Failed to load server module:', err);
-}
+})();
 
 // 基本的なAPI - ヘルスチェック
 app.get('/api/health', (req, res) => {
@@ -64,14 +75,40 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    moduleFormat: isESM ? 'ESM' : 'CommonJS'
+    moduleFormat: 'ESM'
+  });
+});
+
+// 新しいAPI - サーバーステータス
+app.get('/api/status', (req, res) => {
+  res.json({
+    status: 'ready',
+    timestamp: new Date().toISOString(),
+    serverReady: true,
+    nextScreen: '/chat'  // クライアントに次の画面を指示
+  });
+});
+
+// 新しいAPI - チャット初期化用
+app.post('/api/init-chat', (req, res) => {
+  // 新しい会話IDを生成（実際のIDはサーバーモジュールで生成されるべきですが、
+  // ここではシンプルな一意のIDを生成します）
+  const conversationId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+
+  console.log('新しい会話を初期化しました:', conversationId);
+
+  // 初期化が完了したことを示すレスポンスを返す
+  res.json({
+    success: true,
+    conversationId: conversationId,
+    redirect: `/chat?conversation=${conversationId}`
   });
 });
 
 // 基本的なAPI - 会話一覧
 app.get('/api/conversations', (req, res) => {
   console.log('GET /api/conversations called');
-  
+
   // サーバーモジュールがロードされていればそれを使用
   if (serverModule && typeof serverModule.getConversations === 'function') {
     try {
@@ -81,7 +118,7 @@ app.get('/api/conversations', (req, res) => {
       console.error('Error getting conversations from server module:', err);
     }
   }
-  
+
   // フォールバック: 空の配列を返す
   res.json([]);
 });
@@ -101,7 +138,7 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
-  
+
   // それ以外のリクエストはindex.htmlにフォールバック
   const indexPath = path.join(clientDir, 'index.html');
   if (fs.existsSync(indexPath)) {
@@ -135,11 +172,12 @@ app.use((err, req, res, next) => {
 });
 
 // サーバー起動（直接実行の場合のみ）
-if (require.main === module) {
+// ESMでは import.meta.url を使用して現在のモジュールを判断
+if (import.meta.url === `file://${process.argv[1]}`) {
   const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
 }
 
 // モジュールとしてエクスポート
-module.exports = app;
+export default app;

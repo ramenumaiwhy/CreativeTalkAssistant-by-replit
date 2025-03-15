@@ -55,7 +55,7 @@ function MyComponent() {
   return (
     <div>
       <Button>クリック</Button>
-      <ChatInterface conversationId="123" onOpenContext={() => {}} onExport={() => {}} />
+    <ChatInterface conversationId="123" onOpenContext={() => {}} onExport={() => {}} />
     </div>
   );
 }

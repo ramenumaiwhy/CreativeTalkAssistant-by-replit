@@ -4,14 +4,15 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import LoadingScreen from "@/pages/loading";
 
 /**
  * Routerコンポーネント
  * 
  * これは「ルーター」と呼ばれるコンポーネントです。
  * ルーターとは、URLに応じて表示する画面を切り替える役割を持ちます。
- * 例えば、「/」（トップページ）にアクセスしたらHomeコンポーネントを表示し、
- * それ以外のURLにアクセスしたらNotFoundコンポーネント（404ページ）を表示します。
+ * 例えば、「/」（トップページ）にアクセスしたらLoadingScreenコンポーネントを表示し、
+ * 「/chat」にアクセスしたらHomeコンポーネントを表示します。
  * 
  * これは「道案内」のようなもので、ユーザーがどのURLにアクセスしたかによって、
  * どの画面に案内するかを決めています。
@@ -19,8 +20,10 @@ import Home from "@/pages/home";
 function Router() {
   return (
     <Switch>
-      {/* トップページのルート */}
-      <Route path="/" component={Home} />
+      {/* トップページのルート - ローディング画面を表示 */}
+      <Route path="/" component={LoadingScreen} />
+      {/* チャットページのルート - ホームコンポーネントを表示 */}
+      <Route path="/chat" component={Home} />
       {/* 上記以外のURLにアクセスした場合は「ページが見つかりません」画面を表示 */}
       <Route component={NotFound} />
     </Switch>
